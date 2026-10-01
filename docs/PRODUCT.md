@@ -2,7 +2,7 @@
 
 ## Current Scope
 
-Current development target: **Phase 1 — Absolute MVP**.
+Current development target: **Phase 1 — Flashcard MVP**.
 
 ApcoTask is a Windows-first task manager that separates:
 
@@ -56,6 +56,16 @@ The user can:
 
 All canonical data is stored locally.
 
+## Phase 1 Domain Invariants
+
+- Each task belongs to exactly one category at a time.
+- Category order determines category priority.
+- Task order determines priority within a category.
+- Only active tasks participate in the global sequence.
+- Categories with no active tasks are ignored by selection.
+- Global task order is deterministic round-robin across ordered categories.
+- Moving a task to another category changes its category membership; a task never belongs to multiple categories simultaneously.
+
 ## Task Selection
 
 Phase 1 uses deterministic round-robin selection across ordered categories.
@@ -87,6 +97,14 @@ Rules:
 * completed tasks are excluded;
 * categories without active tasks are skipped;
 * task selection must be independent from React and Tauri-specific code.
+
+### Task Category Membership
+
+Each task belongs to exactly one category at a time.
+
+Moving a task between categories updates its `categoryId`.
+Tasks do not support multiple categories in Phase 1.
+
 
 ## Done
 

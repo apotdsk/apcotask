@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Impeccable local/runtime state
+.impeccable/config.local.json
+.impeccable/live/
+.impeccable/review/
+.impeccable-live/
+.impeccable-live.json

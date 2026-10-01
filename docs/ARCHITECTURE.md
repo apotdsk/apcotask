@@ -2,7 +2,7 @@
 
 ## Current Target
 
-Current architecture supports **Phase 1 — Absolute MVP** only.
+Current architecture supports **Phase 1 — Flashcard MVP** only.
 
 The goal is to keep the application simple, testable, and easy to extend later without designing Phase 2 or Phase 3 in advance.
 

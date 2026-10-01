@@ -4,7 +4,7 @@
 
 Build ApcoTask incrementally and only implement the task currently requested.
 
-Current target: **Phase 1 — Absolute MVP**.
+Current target: **Phase 1 — Flashcard MVP**.
 
 Do not implement Phase 2 task-selection features, cloud synchronization, authentication, or mobile functionality unless explicitly requested.
 
@@ -29,6 +29,7 @@ If an explicit user instruction conflicts with repository documentation, follow 
 * Avoid premature abstractions for future phases.
 * Use strict TypeScript typing and avoid `any`.
 * Do not implement speculative features.
+* If a product ambiguity affects expected behavior or test outcomes, stop before implementation and report it instead of inventing a requirement.
 
 ## Validation
 
