@@ -59,12 +59,12 @@ All canonical data is stored locally.
 ## Phase 1 Domain Invariants
 
 - Each task belongs to exactly one category at a time.
+- Moving a task between categories changes its category membership.
 - Category order determines category priority.
 - Task order determines priority within a category.
 - Only active tasks participate in the global sequence.
 - Categories with no active tasks are ignored by selection.
 - Global task order is deterministic round-robin across ordered categories.
-- Moving a task to another category changes its category membership; a task never belongs to multiple categories simultaneously.
 
 ## Task Selection
 
@@ -97,13 +97,6 @@ Rules:
 * completed tasks are excluded;
 * categories without active tasks are skipped;
 * task selection must be independent from React and Tauri-specific code.
-
-### Task Category Membership
-
-Each task belongs to exactly one category at a time.
-
-Moving a task between categories updates its `categoryId`.
-Tasks do not support multiple categories in Phase 1.
 
 
 ## Done
@@ -167,6 +160,17 @@ Persist:
 * widget mode;
 * widget position;
 * widget size.
+
+### Persistence Invariants
+
+- Category `order` values must be unique.
+- Task `order` values must be unique within the same category.
+- The same task `order` value may be used in different categories.
+- Every task must reference exactly one existing category.
+- Deleting a category that still contains tasks must fail.
+- Deleting a category must never automatically delete its tasks.
+- Task status must be either `active` or `completed`.
+- Persistence must not silently repair invalid ordering or category membership.
 
 No account, backend, or cloud synchronization is used.
 
