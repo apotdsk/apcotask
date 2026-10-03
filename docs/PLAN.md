@@ -11,7 +11,7 @@
 ## Current Milestone: A — Persistence
 
 ### T01 — Persistence contract tests
-Status: [ ]
+Status: [x]
 Depends on: committed docs
 Scope: stub repository module with the full API and `PersistenceError`; contract tests for every persistence invariant, ordering rule, and the completed-task lifecycle in `docs/PRODUCT.md`. No implementation.
 Done when: every test fails at its own assertion with "not implemented"; typecheck passes; tests reviewed and approved by the project owner and committed separately.
@@ -19,7 +19,7 @@ Done when: every test fails at its own assertion with "not implemented"; typeche
 ### T02 — Schema, migrations, test driver, categories
 Status: [ ]
 Depends on: T01
-Scope: choose the Node test driver (resolve the open decision); first migration with all tables; driver interface; test adapter; category repository functions; error mapping for category errors.
+Scope: choose the Node test driver (resolve the open decision); first migration with all tables; driver interface; test adapter; category repository functions; error mapping for category errors; schema-constraint mapping tests for `DUPLICATE_ORDER` and `INVALID_STATUS`.
 Done when: all category tests pass; ARCHITECTURE.md and DECISIONS.md updated for the driver choice.
 
 ### T03 — Task repository

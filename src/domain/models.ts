@@ -13,4 +13,5 @@ export interface Task {
   readonly description?: string
   readonly order: number
   readonly status: TaskStatus
+  readonly completedAt?: string
 }

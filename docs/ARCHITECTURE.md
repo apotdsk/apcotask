@@ -78,6 +78,15 @@ SQLite stores canonical application data. What is persisted is defined in `docs/
 
 Persistence is accessed only through the repository API in `src/persistence/`, never directly from React components.
 
+#### Repository API Semantics
+
+- `getCategory` and `getTask` return `undefined` when the requested ID does not exist.
+- `listTasks` throws `CATEGORY_NOT_FOUND` when its category does not exist.
+- Creating or updating a task normalizes an omitted, empty, or whitespace-only description to no description.
+- `updateTask` replaces both title and description. Omitting the description clears it.
+- Moving a task to its current category throws `INVALID_INPUT`.
+- Completing an already completed task or reactivating an active task throws `INVALID_STATUS`.
+
 #### Integration
 
 - Production: `@tauri-apps/plugin-sql`. SQL executes in the Tauri Rust process; the TypeScript API is asynchronous.

@@ -8,27 +8,30 @@ Template rules:
 - "Gotchas" lists things the next session would otherwise rediscover the hard way.
 -->
 
-Date: 2026-10-01
-Task: preparation for T01
+Date: 2026-10-03
+Task: T01 — Persistence contract tests
 
 ## Done This Session
 
-- Revised docs/PRODUCT.md, docs/ARCHITECTURE.md, docs/DECISIONS.md, AGENTS.md.
-- Created docs/PLAN.md and docs/HANDOFF.md.
+- Added `Task.completedAt` and the complete asynchronous category/task repository API.
+- Added `PersistenceError`, the intentional `not implemented` repository stub, and a reusable contract harness.
+- Added the approved persistence contract suite, including description normalization and accepted lookup/lifecycle semantics.
+- Ran the required validation and reviewed the final diff.
 
 ## Current State
 
-- Task-selection domain logic and its tests pass.
-- - The earlier draft persistence tests were deleted; T01 writes new ones from scratch.
-- No persistence implementation, SQLite dependency, or migrations exist yet.
+- T01 is approved and marked `[x]`; the product owner will commit it.
+- `npm run typecheck` and `npm run lint` pass.
+- `npm run test` reports 8 passing domain tests and 77 persistence tests failing intentionally with `not implemented`.
+- No module, type, syntax, or whitespace errors remain.
 
 ## Next Step
 
-Start T01: create the repository stub and rewrite the persistence contract tests according to the revised docs.
+Start T02.
 
 ## Open Questions / Blockers
 
-- None blocking T01. Open technical decisions are listed in docs/DECISIONS.md.
+- None blocking T02. The Node SQLite test driver remains an open decision.
 
 ## Gotchas
 
