@@ -93,7 +93,9 @@ Persistence is accessed only through the repository API in `src/persistence/`, n
 - Repository functions depend on a minimal driver interface (`select`, `execute`, `transaction`).
 - Adapters:
   - production: `@tauri-apps/plugin-sql`;
-  - tests: a Node SQLite driver with an in-memory database.
+  - tests: the built-in `node:sqlite` driver with an in-memory database.
+- The test adapter is isolated in `src/persistence/testing/`, is not exported from the persistence entry point, and is excluded from the application TypeScript project.
+- Development and tests require Node.js 22.13 or newer. The synchronous `node:sqlite` API is contained inside the test adapter behind the asynchronous driver interface.
 - The driver interface exists for testability, not for supporting future backends.
 
 #### Schema
@@ -159,6 +161,7 @@ NOT_FOUND
 ```
 
 Driver errors are mapped to these codes in one place inside `src/persistence/`. Tests assert codes, never driver messages.
+Constraint mapping uses named SQL constraints and portable SQLite message text rather than driver-specific error fields, so the same mapping can be used by the Node test driver and the Tauri SQL plugin.
 
 ### Tauri / Rust
 

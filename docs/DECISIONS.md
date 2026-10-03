@@ -62,8 +62,13 @@ Context: The product owner has no preference.
 Decision: Names must be non-empty but may repeat.
 Consequences: No uniqueness constraint or error code for names.
 
+## D-011 · 2026-10-03 · Built-in Node SQLite test driver
+
+Context: Persistence contract tests need an in-memory SQLite database that applies the production SQL migrations. The project targets Windows and currently uses Node 22.13. `better-sqlite3` would add a native development dependency and potential Windows build-tool requirements, while Node 22.13 already provides `node:sqlite`.
+Decision: Tests use the built-in `node:sqlite` module, with Node 22.13 as the minimum development runtime. The adapter remains test-only and implements the same asynchronous driver interface used by production persistence.
+Consequences: No SQLite npm dependency is required. Test TypeScript uses a separate Node-aware project, while application TypeScript and the production bundle exclude the adapter. The Node 22 API is experimental, so future Node upgrades may require adapter-only changes.
+
 ## Open Decisions
 
 - Widget position and size storage: `tauri-plugin-window-state` or the `settings` table. Decide in the widget task.
-- Node SQLite test driver (`better-sqlite3` or the built-in `node:sqlite`). Decide in the persistence implementation plan, based on the installed Node version and Windows build support.
 - Technical approach for Desktop mode on Windows. Decide in the widget task after a short spike.

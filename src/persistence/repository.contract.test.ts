@@ -3,14 +3,10 @@ import type { Category, Task } from '../domain'
 import type { PersistenceErrorCode } from './errors'
 import { PersistenceError } from './errors'
 import type { RepositoryContractHarness } from './contract'
-import { createStubRepository, type Repository } from './repository'
+import { createNodeSqliteTestHarness } from './testing/nodeSqliteTestDriver'
+import type { Repository } from './repository'
 
-const harness: RepositoryContractHarness = {
-  async createRepository() {
-    return createStubRepository()
-  },
-  async dispose() {},
-}
+const harness: RepositoryContractHarness = createNodeSqliteTestHarness()
 
 async function repository(): Promise<Repository> {
   return harness.createRepository()
