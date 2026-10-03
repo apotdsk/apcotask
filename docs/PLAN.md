@@ -28,11 +28,17 @@ Depends on: T02
 Scope: task create, get, list, update, complete, reactivate, delete, move, reorder; `purgeExpiredCompletedTasks(now)`.
 Done when: all persistence contract tests pass.
 
-### T04 — Production SQL adapter
+### T04a — Batch driver and repository refactor
 Status: [ ]
 Depends on: T03
-Scope: `@tauri-apps/plugin-sql` setup, migration registration, production adapter, foreign keys and WAL verified on plugin connections.
-Done when: manual smoke check passes: create a category and a task, restart, data is present; deleting a non-empty category fails.
+Scope: replace `transaction(callback)` with guarded `batch(statements)` in the driver contract; update the Node SQLite adapter; refactor repository atomic operations to use read, guarded batch, two-phase temporary positions, and stale-read retry. No Tauri changes.
+Done when: all existing persistence contract tests pass unchanged; focused batch tests prove commit, SQL-error rollback, affected-row rollback, three-attempt stale-read retry ending in `CONFLICT`, and two-phase gap closing; typecheck and lint pass.
+
+### T04b — Production Rust database adapter
+Status: [ ]
+Depends on: T04a
+Scope: app-owned `rusqlite` connection using the `bundled` feature in the app data directory; startup migrations with version tracking; foreign keys and WAL enabled and verified; asynchronous Tauri `select`, `execute`, and `batch` commands with database work dispatched through `spawn_blocking`; TypeScript production adapter.
+Done when: Rust tests and project validation pass; manual smoke check passes: create a category and a task, restart, data is present; deleting a non-empty category fails.
 
 ## Milestone B — Execution Logic
 
@@ -52,7 +58,7 @@ Done when: committed.
 
 ### T07 — Application shell
 Status: [ ]
-Depends on: T04
+Depends on: T04b
 Scope: main and widget windows, tray with Open backlog and Quit, hide-on-close, `backlog-changed` event wrappers in `src/native/`.
 Done when: manual check of tray, hide-on-close, and Quit; both windows open.
 

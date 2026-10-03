@@ -24,10 +24,11 @@ Task: T03 — Task repository
 - All 92 tests pass, including every persistence contract test.
 - `npm run typecheck`, `npm run lint`, `npm run test`, and `npm run build` pass.
 - No new dependency, migration, or source-of-truth documentation change was required.
+- D-012 decided: production persistence moves to an app-owned rusqlite connection with guarded batches; T04 is split into T04a and T04b.
 
 ## Next Step
 
-Start T04 by reviewing the production SQL adapter requirements and current Tauri setup.
+Start T04a: replace transaction(callback) with guarded batch(statements) and refactor the repository (see D-012). No Tauri changes.
 
 ## Open Questions / Blockers
 

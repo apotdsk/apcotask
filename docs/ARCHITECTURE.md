@@ -15,7 +15,7 @@ Product behavior is defined in `docs/PRODUCT.md`. This document describes how th
 * Vite
 * Tauri 2
 * Rust
-* SQLite via `@tauri-apps/plugin-sql`
+* SQLite via `rusqlite` with the `bundled` feature
 * `@tauri-apps/plugin-autostart` (start with Windows)
 * Vitest
 
@@ -89,10 +89,14 @@ Persistence is accessed only through the repository API in `src/persistence/`, n
 
 #### Integration
 
-- Production: `@tauri-apps/plugin-sql`. SQL executes in the Tauri Rust process; the TypeScript API is asynchronous.
-- Repository functions depend on a minimal driver interface (`select`, `execute`, `transaction`).
+- Production: a small Tauri Rust database module owns one `rusqlite::Connection` in application state behind a mutex. The database is opened from the app data directory during startup.
+- The Rust module exposes three generic commands: `select`, `execute`, and `batch`. Database work runs off the main thread through async Tauri commands using `spawn_blocking`.
+- The generic SQL commands are acceptable only because the application never loads remote content. Application windows must not load external URLs.
+- Repository functions depend on a minimal asynchronous driver interface (`select`, `execute`, `batch`).
+- A batch is a list of write statements executed in one native SQLite transaction. Statements may require an exact affected-row count. Any SQL failure or affected-row mismatch rolls back the complete batch.
+- Repository operations that calculate writes from prior reads use guarded statements and retry after an affected-row mismatch. After three failed attempts, the repository throws `PersistenceError` with code `CONFLICT`.
 - Adapters:
-  - production: `@tauri-apps/plugin-sql`;
+  - production: Tauri command adapter for the Rust database module;
   - tests: the built-in `node:sqlite` driver with an in-memory database.
 - The test adapter is isolated in `src/persistence/testing/`, is not exported from the persistence entry point, and is excluded from the application TypeScript project.
 - Development and tests require Node.js 22.13 or newer. The synchronous `node:sqlite` API is contained inside the test adapter behind the asynchronous driver interface.
@@ -125,20 +129,23 @@ settings
 - The domain field `order` maps to the column `position`, because `ORDER` is an SQL keyword.
 - IDs are generated in TypeScript with `crypto.randomUUID()`.
 - Timestamps are stored as ISO 8601 strings in UTC.
-- Foreign-key enforcement must be enabled on every connection. Verify this for the plugin's connections; do not assume it.
-- The database runs in WAL mode, because both windows access it.
+- Foreign-key enforcement is enabled and verified on the app-owned connection at startup.
+- WAL mode is enabled and verified on the app-owned connection at startup.
+- Both windows access the same Rust-managed connection through Tauri commands. They do not open per-window database connections.
 
 #### Migrations
 
 - Migrations are versioned SQL files in `src-tauri/migrations/`, applied in order.
-- The production app registers them with the SQL plugin (embedded at build time).
+- The Rust database module embeds them at build time and applies pending migrations at startup. `PRAGMA user_version` tracks the applied version.
+- Each migration and its version update run in the same transaction.
+- Applied migration files are immutable. Startup fails if the database version is newer than the application supports.
 - Tests apply the same files to the in-memory test database, so tests and production share one schema definition.
 
 #### Ordering Operations
 
 - Create appends at the end of the list (`max(position) + 1`, or 0 for an empty list).
 - Reorder and move run in one transaction. To avoid transient unique-constraint conflicts, positions are first set to temporary negative values, then to their final values.
-- Delete and move close the gap in the affected list within the same transaction.
+- Delete and move close the gap in the affected list within the same transaction. All gap closing uses the same two-phase temporary-negative-position technique as reorder; positions are never shifted directly in one statement.
 
 #### Completed Task Cleanup
 
@@ -158,6 +165,7 @@ INVALID_STATUS
 INVALID_INPUT
 INVALID_REORDER
 NOT_FOUND
+CONFLICT
 ```
 
 Driver errors are mapped to these codes in one place inside `src/persistence/`. Tests assert codes, never driver messages.
@@ -174,9 +182,9 @@ Examples:
 * Floating/Desktop modes;
 * system tray;
 * start with Windows;
-* SQL plugin registration and migrations.
+* database connection ownership, migrations, and generic SQL command execution.
 
-Do not move ordinary task-management business logic into Rust without a concrete reason.
+Do not move ordinary task-management business logic into Rust. Rust owns connection lifecycle and transaction execution; repository rules remain in TypeScript.
 
 ## Windows
 
@@ -195,7 +203,7 @@ Window-specific code should remain separate from task-selection logic.
 
 ### Window and State Ownership
 
-Each window is a separate webview with its own JavaScript runtime and its own database connection.
+Each window is a separate webview with its own JavaScript runtime. Both use the same app-owned Rust database connection through Tauri commands.
 
 - SQLite is the single source of truth for canonical state. No window holds an authoritative in-memory copy.
 - Execution state is owned by the widget window only.
@@ -264,8 +272,10 @@ Execution tests should cover:
 
 Not covered by automated tests:
 
-* SQL plugin wiring, permissions, and database path;
-* connection pragmas inside the plugin;
+* Tauri command wiring and production IPC serialization;
+* packaged application database path and filesystem permissions;
+* both windows reaching the same managed database state;
+* production restart persistence;
 * event delivery between windows;
 * tray, autostart registration, and window modes.
 
