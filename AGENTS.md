@@ -35,6 +35,8 @@ If code and `docs/PRODUCT.md` disagree, stop and ask. Never change `docs/PRODUCT
 * Use strict TypeScript typing and avoid `any`.
 * Do not implement speculative features.
 * If a product ambiguity affects expected behavior or test outcomes, stop before implementation and report it instead of inventing a requirement.
+* In plans, mark every behavior not defined in docs/PRODUCT.md or docs/ARCHITECTURE.md as "Proposed decision" so it can be approved explicitly.
+* In plans, list every file to be created or changed, including files outside the task's main folder.
 
 ## Session Workflow
 
@@ -48,8 +50,9 @@ At session start:
 At session end, or when asked to close the session:
 
 1. Update the task status in `docs/PLAN.md`. Do not add, remove, or reorder tasks without approval; propose new tasks in your report instead.
-2. Overwrite `docs/HANDOFF.md` following its template.
-3. State whether `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, or `docs/DECISIONS.md` need changes, and show the proposed diff.
+2. Mark the task [x] once the project owner has approved it. Committing is the owner's step and does not keep the task open.
+3. Overwrite `docs/HANDOFF.md` following its template.
+4. State whether `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, or `docs/DECISIONS.md` need changes, and show the proposed diff.
 
 ## Development Workflow
 
@@ -63,6 +66,8 @@ For non-trivial implementation tasks:
 6. Report what was created or changed, validation results, and any remaining issues.
 
 Do not commit or push unless explicitly asked.
+
+* Tests: one behavior per test, no test that only repeats another test's assertion, and test.each for input variants of the same rule.
 
 ## Validation
 
