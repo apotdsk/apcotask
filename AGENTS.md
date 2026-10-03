@@ -12,11 +12,16 @@ Do not implement Phase 2 task-selection features, cloud synchronization, authent
 
 * `docs/PRODUCT.md` — product behavior and scope.
 * `docs/ARCHITECTURE.md` — technical and architectural decisions.
-* `docs/DESIGN.md` — UI and visual rules.
+* `docs/DESIGN.md` — UI and visual rules. Read it only for UI tasks.
+* `docs/DECISIONS.md` — reasons behind decisions, and open decisions.
+* `docs/PLAN.md` — task list and status.
+* `docs/HANDOFF.md` — state at the end of the last session.
 
 Do not use the full PRD.
 
-If an explicit user instruction conflicts with repository documentation, follow the user instruction.
+If an explicit user instruction conflicts with repository documentation, follow the user instruction, state the conflict in your report, and propose the documentation change.
+
+If code and `docs/PRODUCT.md` disagree, stop and ask. Never change `docs/PRODUCT.md` to match the code.
 
 ## Engineering Rules
 
@@ -31,6 +36,21 @@ If an explicit user instruction conflicts with repository documentation, follow 
 * Do not implement speculative features.
 * If a product ambiguity affects expected behavior or test outcomes, stop before implementation and report it instead of inventing a requirement.
 
+## Session Workflow
+
+Work on one task from `docs/PLAN.md` per session unless instructed otherwise.
+
+At session start:
+
+1. Read `docs/HANDOFF.md` and the requested task in `docs/PLAN.md`. Read other documents only as the task requires.
+2. Summarize the task, its "Done when" criteria, and any blocker before changing anything.
+
+At session end, or when asked to close the session:
+
+1. Update the task status in `docs/PLAN.md`. Do not add, remove, or reorder tasks without approval; propose new tasks in your report instead.
+2. Overwrite `docs/HANDOFF.md` following its template.
+3. State whether `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, or `docs/DECISIONS.md` need changes, and show the proposed diff.
+
 ## Development Workflow
 
 For non-trivial implementation tasks:
@@ -42,7 +62,7 @@ For non-trivial implementation tasks:
 5. After implementation, run the relevant validation checks and review the final diff for unintended or unrelated changes.
 6. Report what was created or changed, validation results, and any remaining issues.
 
-When architecture materially changes, update `docs/ARCHITECTURE.md` as part of the same task.
+Do not commit or push unless explicitly asked.
 
 ## Validation
 
@@ -60,8 +80,13 @@ Review the final diff for unintended or unrelated changes.
 
 Fix failures introduced by the change.
 
-This means future prompts don't need to repeat `lint/typecheck/test/diff review` every time.
+Do not claim a check passed unless it actually ran successfully in this session. Paste the summary lines of each check in your report.
 
 ## Documentation
 
-Update documentation only when product behavior, architecture, setup, or development commands actually change.
+* `docs/PRODUCT.md` is the requirement. Propose changes to it and wait for approval; never edit it as a side effect of implementation.
+* If a task changes structure, schema, dependencies, data flow, or ownership rules, update `docs/ARCHITECTURE.md` in the same task.
+* Record non-obvious choices in `docs/DECISIONS.md` as a new entry. Never edit existing entries; a reversed decision gets a new entry that references the old one. Move resolved items out of "Open Decisions".
+* Change `docs/DESIGN.md` only with approval.
+* Update setup instructions and development commands when they change.
+* Keep PRODUCT.md and ARCHITECTURE.md describing the current state; history belongs in DECISIONS.md and git.
