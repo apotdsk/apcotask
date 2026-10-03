@@ -9,32 +9,32 @@ Template rules:
 -->
 
 Date: 2026-10-03
-Task: T02 — Schema, migrations, test driver, categories
+Task: T03 — Task repository
 
 ## Done This Session
 
-- Added the complete initial schema migration with named constraints for categories, tasks, and settings.
-- Added the asynchronous persistence driver interface, portable SQLite constraint mapping, and category repository operations.
-- Added the test-only `node:sqlite` adapter, shared-migration setup, schema mapping tests, and a separate Node-aware TypeScript test project.
-- Recorded the approved Node driver decision and Node 22.13 minimum; verified the adapter is absent from the production bundle.
+- Implemented task create, get, list, update, delete, move, and complete-list reorder operations.
+- Implemented completion, reactivation, and 24-hour completed-task cleanup using an explicit TypeScript-computed ISO cutoff.
+- Made create append assignment a single SQL statement and move append assignment part of the move transaction.
+- Kept task-list mutations atomic and compacted affected lists to contiguous zero-based positions.
 
 ## Current State
 
-- T02 is approved and marked `[x]`; the product owner will commit it.
-- All 20 category contract cases and all 7 schema/error-mapping cases pass.
-- The full suite reports 35 passing tests and 57 intentional T03 failures from unimplemented task repository methods.
-- `npm run typecheck`, `npm run lint`, and `npm run build` pass. `npm run test` exits 1 only because of the 57 intentional T03 failures.
+- T03 is approved and marked `[x]`; the product owner will commit it.
+- All 92 tests pass, including every persistence contract test.
+- `npm run typecheck`, `npm run lint`, `npm run test`, and `npm run build` pass.
+- No new dependency, migration, or source-of-truth documentation change was required.
 
 ## Next Step
 
-Start T03 by reviewing the task repository contract groups and the existing SQLite repository structure.
+Start T04 by reviewing the production SQL adapter requirements and current Tauri setup.
 
 ## Open Questions / Blockers
 
-- None. The Node SQLite driver decision is resolved.
+- None.
 
 ## Gotchas
 
-- The `node:sqlite` experimental warning is intentionally visible; no broad warning suppression was added.
-- SQLite `trim(value)` without a second argument trims spaces, not every JavaScript whitespace character; repository validation handles broader whitespace input.
-- The Node adapter lives under `src/persistence/testing/` and must remain unreachable from application code.
+- Task title validation uses JavaScript `trim()` to cover broader whitespace than SQLite's default `trim()`.
+- Completed timestamps are stored as `Date.toISOString()` strings; cleanup relies on lexical comparison with a cutoff in exactly that format.
+- The `node:sqlite` experimental warning remains intentionally visible during tests.

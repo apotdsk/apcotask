@@ -23,7 +23,7 @@ Scope: choose the Node test driver (resolve the open decision); first migration 
 Done when: all category tests pass; ARCHITECTURE.md and DECISIONS.md updated for the driver choice.
 
 ### T03 — Task repository
-Status: [ ]
+Status: [x]
 Depends on: T02
 Scope: task create, get, list, update, complete, reactivate, delete, move, reorder; `purgeExpiredCompletedTasks(now)`.
 Done when: all persistence contract tests pass.
