@@ -43,7 +43,7 @@ Done when: Rust tests and project validation pass; manual smoke check passes: cr
 ## Milestone B — Execution Logic
 
 ### T05 — Execution session
-Status: [ ]
+Status: [x]
 Depends on: none (pure domain)
 Scope: current task, `Next` with wrap-around, `Done` continuing with the following task, recomputation after backlog changes, empty state. Tests first.
 Done when: all execution tests listed in ARCHITECTURE.md (Testing) pass.

@@ -9,26 +9,26 @@ Template rules:
 -->
 
 Date: 2026-10-04
-Task: T04b — Production Rust database adapter
+Task: T05 — Execution session
 
 ## Done This Session
 
-- Added the app-owned bundled-rusqlite connection, app-data startup, verified foreign keys and WAL, embedded user-version migrations, and async select/execute/batch commands using spawn_blocking.
-- Added structured native errors, IPC parameter/row conversion, atomic guarded batches, and 16 focused Rust tests.
-- Added the production Tauri persistence driver and five mocked-invoke tests, including stale-read and SQLite constraint-error translation.
-- Narrowed the shared SQL value boundary to string, number, and null; added the required Tauri JavaScript API dependency.
-- Pinned `@tauri-apps/api` to `~2.11.0` (resolved 2.11.1) to match the Rust Tauri 2.11 minor line; `tauri dev` launches without a version-mismatch error.
+- Added pure execution-session state and transitions on top of the existing active task sequence.
+- Implemented first-task startup, restart reset, `Next` advancement and wrap-around, and the empty state.
+- Implemented the `Done` completion target and post-write recomputation without coupling the domain to persistence.
+- Preserved an active current task across backlog changes and used the previous sequence to find the first surviving successor after completion or deletion.
+- Added and approved 21 focused execution tests covering Done, Next, recomputation, realistic move/delete positions, cyclic survivor lookup, and fallback to the first new task.
 
 ## Current State
 
-- T04b is approved and marked `[x]`; the project owner will commit it.
-- All 108 TypeScript tests and all 16 Rust tests pass.
-- Typecheck, lint, production web build, Cargo check, scoped Rust formatting, and Tauri dev startup pass.
-- No existing TypeScript test was changed. No capability, Tauri configuration, migration, product, architecture, or decision-document change was needed.
+- T05 is approved and marked `[x]`; the project owner will commit the implementation.
+- All 129 TypeScript tests pass.
+- `npm run typecheck`, `npm run lint`, `npm run test`, and `npm run build` pass.
+- No dependency, persistence, native, UI, product, architecture, or decision-document change was required.
 
 ## Next Step
 
-Start T05 by reviewing its execution-session behaviors in `docs/PRODUCT.md` and test requirements in `docs/ARCHITECTURE.md`.
+Start T06 by drafting `docs/DESIGN.md` from the Phase 1 main-window and widget requirements for project-owner review.
 
 ## Open Questions / Blockers
 
@@ -36,6 +36,6 @@ Start T05 by reviewing its execution-session behaviors in `docs/PRODUCT.md` and 
 
 ## Gotchas
 
-- Rust batch expectation failures use structured code `STALE_READ`; the TypeScript adapter reconstructs `BatchExpectationError` so repository retry behavior remains unchanged.
-- SQLite blobs, bigint parameters, and binary parameters are intentionally outside the Phase 1 JSON IPC boundary.
-- `cargo fmt --check` for the whole crate reports pre-existing formatting in untouched starter files; the changed Rust files pass `rustfmt --check` directly.
+- Execution state stores the full previous active sequence as IDs so removal can scan cyclically for the first task that still survives.
+- If the current task remains active, recomputation keeps it current and replaces the stored sequence with the newly computed one, so `Next` follows its new position.
+- `Done` remains a two-step application flow: read the current ID, persist completion, then recompute from refreshed canonical data.
