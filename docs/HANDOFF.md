@@ -9,33 +9,35 @@ Template rules:
 -->
 
 Date: 2026-10-04
-Task: T05 — Execution session
+Task: T07 — Application shell
 
 ## Done This Session
 
-- Added pure execution-session state and transitions on top of the existing active task sequence.
-- Implemented first-task startup, restart reset, `Next` advancement and wrap-around, and the empty state.
-- Implemented the `Done` completion target and post-write recomputation without coupling the domain to persistence.
-- Preserved an active current task across backlog changes and used the previous sequence to find the first surviving successor after completion or deletion.
-- Added and approved 21 focused execution tests covering Done, Next, recomputation, realistic move/delete positions, cyclic survivor lookup, and fallback to the first new task.
+- Added configured main and widget windows with T07-only placeholder surfaces.
+- Added a Rust-owned tray with Open backlog and Quit, main hide-on-close, prevented widget close, and shared show/restore/focus behavior.
+- Added single-instance handling before database initialization so a repeated launch reopens the existing backlog instead of creating a second connection.
+- Added typed `backlog-changed` event wrappers and focused tests.
+- Scoped event capabilities to both windows and added production and development local-only CSPs.
+- Recorded the approved lifecycle behavior in PRODUCT.md, ARCHITECTURE.md, and DECISIONS.md.
+- Verified a second launch leaves one process. Automated TypeScript, frontend build, and Rust checks pass.
 
 ## Current State
 
-- T05 is approved and marked `[x]`; the project owner will commit the implementation.
-- All 129 TypeScript tests pass.
-- `npm run typecheck`, `npm run lint`, `npm run test`, and `npm run build` pass.
-- No dependency, persistence, native, UI, product, architecture, or decision-document change was required.
+- T07 is implemented but remains `[~]` until the owner completes the interactive tray, window-close, cross-window event, and two-window database console checks.
+- The native app launches successfully with Tauri 2.11.5 and `tauri-plugin-single-instance` 2.4.5.
+- All 133 TypeScript tests and all 16 Rust tests pass.
 
 ## Next Step
 
-Start T07
+Run the T07 manual checklist from the implementation report in both WebView developer consoles, then approve T07 and mark it `[x]`.
 
 ## Open Questions / Blockers
 
-- None.
+- Interactive Windows UI and developer-console checks require the project owner's desktop session.
 
 ## Gotchas
 
-- Execution state stores the full previous active sequence as IDs so removal can scan cyclically for the first task that still survives.
-- If the current task remains active, recomputation keeps it current and replaces the stored sequence with the newly computed one, so `Next` follows its new position.
-- `Done` remains a two-step application flow: read the current ID, persist completion, then recompute from refreshed canonical data.
+- `tauri-plugin-single-instance` must remain the first registered plugin so the second process exits before database setup.
+- Widget close is deliberately prevented because the approved tray menu has no widget restore command.
+- T11–T13 still own widget content/dragging, window modes, and geometry persistence respectively.
+- Running `npm run build` inside the restricted shell can fail while resolving `C:\Users\lenovo`; it passed outside that sandbox.

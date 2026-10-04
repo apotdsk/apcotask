@@ -1,11 +1,14 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "enables the default permissions",
+  "description": "Native permissions shared by the main and widget windows",
   "windows": [
-    "main"
+    "main",
+    "widget"
   ],
   "permissions": [
-    "core:default"
+    "core:event:allow-emit",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
   ]
 }

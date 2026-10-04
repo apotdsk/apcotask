@@ -206,8 +206,11 @@ Settings are changed in the main window:
 
 ## Application Lifecycle
 
+- Only one application process runs at a time. Starting ApcoTask again opens and focuses the existing main window instead of creating another process.
 - The application shows a system tray icon with the menu items **Open backlog** and **Quit**.
 - Closing the main window hides it; the widget keeps running.
+- Closing the widget window is ignored; the widget remains visible until the application is exited through **Quit**.
+- **Open backlog** shows the existing main window, restores it if minimized, and focuses it. If it is already visible, it is focused without creating another window.
 - **Quit** exits the application, closing all windows.
 - When started manually, the application opens the main window and the widget.
 - When started automatically with Windows, the application opens only the widget; the main window stays hidden until opened from the tray.

@@ -226,8 +226,11 @@ Each window is a separate webview with its own JavaScript runtime. Both use the 
 
 ### Application Lifecycle
 
+- The single-instance plugin is registered first. A second launch exits before initializing another database connection and asks the running process to open the backlog.
 - The system tray is created in Rust and offers **Open backlog** and **Quit**.
 - Closing the main window hides it; the application exits only through **Quit**.
+- Closing the widget is prevented so it cannot become hidden without a defined restore action.
+- Rust uses one `open_backlog` operation for the tray and second-instance callback: show the existing main window, restore it if minimized, and focus it.
 - Start with Windows uses `@tauri-apps/plugin-autostart`. The operating-system registration is the source of truth; the setting is read from the plugin, not stored in SQLite.
 - Autostart launches the application with the `--autostart` argument. With that argument, the main window starts hidden.
 
