@@ -11,6 +11,7 @@ export type {
 } from './driver'
 export { createStubRepository } from './repository'
 export { createSqliteRepository } from './sqliteRepository'
+export { createTauriPersistenceDriver } from './tauriDriver'
 export type {
   CategoryRepository,
   CreateCategoryInput,

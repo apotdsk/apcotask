@@ -35,7 +35,7 @@ Scope: replace `transaction(callback)` with guarded `batch(statements)` in the d
 Done when: all existing persistence contract tests pass unchanged; focused batch tests prove commit, SQL-error rollback, affected-row rollback, three-attempt stale-read retry ending in `CONFLICT`, and two-phase gap closing; typecheck and lint pass.
 
 ### T04b — Production Rust database adapter
-Status: [ ]
+Status: [x]
 Depends on: T04a
 Scope: app-owned `rusqlite` connection using the `bundled` feature in the app data directory; startup migrations with version tracking; foreign keys and WAL enabled and verified; asynchronous Tauri `select`, `execute`, and `batch` commands with database work dispatched through `spawn_blocking`; TypeScript production adapter.
 Done when: Rust tests and project validation pass; manual smoke check passes: create a category and a task, restart, data is present; deleting a non-empty category fails.

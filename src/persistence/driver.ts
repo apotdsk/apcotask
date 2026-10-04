@@ -1,4 +1,4 @@
-export type SqlValue = string | number | bigint | Uint8Array | null
+export type SqlValue = string | number | null
 export type SqlParameters = readonly SqlValue[]
 
 export interface ExecuteResult {
