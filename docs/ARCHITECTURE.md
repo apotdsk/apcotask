@@ -56,6 +56,19 @@ React is responsible for:
 
 React components should not contain core task-selection logic, raw persistence logic, or direct Tauri API calls. Tauri APIs are accessed through `src/native/`.
 
+### Styling
+
+- SCSS modules (`sass` as a dev dependency). Global styles in `src/App.scss`; shared partials in `src/styles/_vars.scss` and `src/styles/_mixins.scss`.
+- Every module starts with `@use '@/styles/vars' as vars;` and `@use '@/styles/mixins' as mx;` (Vite alias `@` → `src`).
+- Explicit class names instead of structural pseudo-selectors such as `:first-child`. Interaction states (`:hover`, `:focus-visible`, `:disabled`) are allowed and required by DESIGN.md.
+- Relative units (rem, em, %); px only for borders.
+- Design tokens from `docs/DESIGN.md` live in `_vars.scss`.
+
+### Fonts and Remote Content
+
+- Agdasima, Oswald, and Inter are bundled as local font files in `src/assets/fonts/` and loaded with `@font-face`. No font or other resource is loaded from the internet.
+- The Tauri content security policy allows only local resources, which enforces the no-remote-content rule technically.
+
 ### Domain
 
 TypeScript domain code contains:

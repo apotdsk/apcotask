@@ -12,7 +12,7 @@ Do not implement Phase 2 task-selection features, cloud synchronization, authent
 
 * `docs/PRODUCT.md` — product behavior and scope.
 * `docs/ARCHITECTURE.md` — technical and architectural decisions.
-* `docs/DESIGN.md` — UI and visual rules. Read it only for UI tasks.
+* For UI tasks, read `docs/DESIGN.md` before planning and use Impeccable as the design assistant. `docs/DESIGN.md` wins any conflict with Impeccable's defaults; do not drift toward generic SaaS or dashboard patterns.
 * `docs/DECISIONS.md` — reasons behind decisions, and open decisions.
 * `docs/PLAN.md` — task list and status.
 * `docs/HANDOFF.md` — state at the end of the last session.

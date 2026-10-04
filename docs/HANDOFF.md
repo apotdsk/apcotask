@@ -28,7 +28,7 @@ Task: T05 — Execution session
 
 ## Next Step
 
-Start T06 by drafting `docs/DESIGN.md` from the Phase 1 main-window and widget requirements for project-owner review.
+Start T07
 
 ## Open Questions / Blockers
 

@@ -51,7 +51,7 @@ Done when: all execution tests listed in ARCHITECTURE.md (Testing) pass.
 ## Milestone C — Application Shell and Main Window
 
 ### T06 — Design document
-Status: [ ]
+Status: [x]
 Depends on: none
 Scope: `docs/DESIGN.md` with main window layout, widget appearance, and basic visual rules. Written or approved by the project owner.
 Done when: committed.
