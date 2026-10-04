@@ -29,7 +29,7 @@ Scope: task create, get, list, update, complete, reactivate, delete, move, reord
 Done when: all persistence contract tests pass.
 
 ### T04a — Batch driver and repository refactor
-Status: [ ]
+Status: [x]
 Depends on: T03
 Scope: replace `transaction(callback)` with guarded `batch(statements)` in the driver contract; update the Node SQLite adapter; refactor repository atomic operations to use read, guarded batch, two-phase temporary positions, and stale-read retry. No Tauri changes.
 Done when: all existing persistence contract tests pass unchanged; focused batch tests prove commit, SQL-error rollback, affected-row rollback, three-attempt stale-read retry ending in `CONFLICT`, and two-phase gap closing; typecheck and lint pass.

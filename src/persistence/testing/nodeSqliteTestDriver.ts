@@ -2,10 +2,12 @@ import { readFile } from 'node:fs/promises'
 import { DatabaseSync, type SQLInputValue } from 'node:sqlite'
 import type { RepositoryContractHarness } from '../contract'
 import type {
+  BatchStatement,
   ExecuteResult,
   PersistenceDriver,
   SqlParameters,
 } from '../driver'
+import { BatchExpectationError } from '../driver'
 import { createSqliteRepository } from '../sqliteRepository'
 
 const migrationUrl = new URL('../../../src-tauri/migrations/0001_initial.sql', import.meta.url)
@@ -30,12 +32,28 @@ class NodeSqliteTestDriver implements PersistenceDriver {
     return { rowsAffected: Number(result.changes) }
   }
 
-  async transaction<T>(operation: (driver: PersistenceDriver) => Promise<T>): Promise<T> {
+  async batch(statements: readonly BatchStatement[]): Promise<readonly ExecuteResult[]> {
     this.database.exec('BEGIN')
     try {
-      const result = await operation(this)
+      const results = statements.map((statement, index) => {
+        const result = this.database
+          .prepare(statement.sql)
+          .run(...nodeParameters(statement.parameters ?? []))
+        const rowsAffected = Number(result.changes)
+        if (
+          statement.expectedRowsAffected !== undefined &&
+          rowsAffected !== statement.expectedRowsAffected
+        ) {
+          throw new BatchExpectationError(
+            index,
+            statement.expectedRowsAffected,
+            rowsAffected,
+          )
+        }
+        return { rowsAffected }
+      })
       this.database.exec('COMMIT')
-      return result
+      return results
     } catch (error) {
       this.database.exec('ROLLBACK')
       throw error

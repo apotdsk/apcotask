@@ -6,6 +6,7 @@ export type PersistenceErrorCode =
   | 'INVALID_INPUT'
   | 'INVALID_REORDER'
   | 'NOT_FOUND'
+  | 'CONFLICT'
 
 export class PersistenceError extends Error {
   override readonly name = 'PersistenceError'

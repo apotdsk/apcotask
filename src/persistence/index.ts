@@ -1,7 +1,14 @@
 export { PersistenceError } from './errors'
 export type { PersistenceErrorCode } from './errors'
 export type { RepositoryContractHarness } from './contract'
-export type { ExecuteResult, PersistenceDriver, SqlParameters, SqlValue } from './driver'
+export { BatchExpectationError } from './driver'
+export type {
+  BatchStatement,
+  ExecuteResult,
+  PersistenceDriver,
+  SqlParameters,
+  SqlValue,
+} from './driver'
 export { createStubRepository } from './repository'
 export { createSqliteRepository } from './sqliteRepository'
 export type {

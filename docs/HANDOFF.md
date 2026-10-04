@@ -8,27 +8,26 @@ Template rules:
 - "Gotchas" lists things the next session would otherwise rediscover the hard way.
 -->
 
-Date: 2026-10-03
-Task: T03 — Task repository
+Date: 2026-10-04
+Task: T04a — Batch driver and repository refactor
 
 ## Done This Session
 
-- Implemented task create, get, list, update, delete, move, and complete-list reorder operations.
-- Implemented completion, reactivation, and 24-hour completed-task cleanup using an explicit TypeScript-computed ISO cutoff.
-- Made create append assignment a single SQL statement and move append assignment part of the move transaction.
-- Kept task-list mutations atomic and compacted affected lists to contiguous zero-based positions.
+- Replaced callback transactions with guarded statement batches in the persistence driver and Node SQLite adapter.
+- Refactored repository delete, move, reorder, and purge operations to use snapshot guards, one atomic batch, and two-phase temporary positions.
+- Added three-attempt stale-read retry ending in a readable `CONFLICT` error.
+- Added focused batch rollback, retry, real competing-write, and two-phase gap-closing tests without changing the contract or schema tests.
 
 ## Current State
 
-- T03 is approved and marked `[x]`; the product owner will commit it.
-- All 92 tests pass, including every persistence contract test.
+- T04a is approved and marked `[x]`; the project owner will commit it.
+- All 103 tests pass, including the unchanged persistence contract suite.
 - `npm run typecheck`, `npm run lint`, `npm run test`, and `npm run build` pass.
-- No new dependency, migration, or source-of-truth documentation change was required.
-- D-012 decided: production persistence moves to an app-owned rusqlite connection with guarded batches; T04 is split into T04a and T04b.
+- No dependency, migration, Tauri, Rust, product, architecture, or decision-document change was required.
 
 ## Next Step
 
-Start T04a: replace transaction(callback) with guarded batch(statements) and refactor the repository (see D-012). No Tauri changes.
+Start T04b by reviewing the approved Rust database design in `docs/ARCHITECTURE.md` and D-012, then inspect the current Tauri setup.
 
 ## Open Questions / Blockers
 
@@ -36,6 +35,6 @@ Start T04a: replace transaction(callback) with guarded batch(statements) and ref
 
 ## Gotchas
 
-- Task title validation uses JavaScript `trim()` to cover broader whitespace than SQLite's default `trim()`.
-- Completed timestamps are stored as `Date.toISOString()` strings; cleanup relies on lexical comparison with a cutoff in exactly that format.
+- `BatchExpectationError` is an internal stale-snapshot signal; only exhausted retries become public `CONFLICT` errors.
+- Snapshot count guards are required in addition to per-row guards so concurrent appends are detected.
 - The `node:sqlite` experimental warning remains intentionally visible during tests.

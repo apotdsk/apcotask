@@ -1,5 +1,9 @@
 import type { Category, Task, TaskStatus } from '../domain'
-import type { PersistenceDriver } from './driver'
+import {
+  BatchExpectationError,
+  type BatchStatement,
+  type PersistenceDriver,
+} from './driver'
 import { PersistenceError } from './errors'
 import { withSqliteErrorMapping } from './errorMapping'
 import { createStubRepository, type Repository } from './repository'
@@ -84,20 +88,89 @@ async function categoryExists(driver: PersistenceDriver, id: string): Promise<bo
   return row !== undefined
 }
 
-async function reindexTasks(driver: PersistenceDriver, categoryId: string): Promise<void> {
-  const tasks = await selectTasks(driver, categoryId)
-  for (let position = 0; position < tasks.length; position += 1) {
-    await driver.execute('UPDATE tasks SET position = ? WHERE id = ?', [
-      -position - 1,
-      tasks[position].id,
-    ])
+const MAX_STALE_READ_ATTEMPTS = 3
+
+async function withStaleReadRetry<T>(operation: () => Promise<T>): Promise<T> {
+  for (let attempt = 1; attempt <= MAX_STALE_READ_ATTEMPTS; attempt += 1) {
+    try {
+      return await operation()
+    } catch (error) {
+      if (!(error instanceof BatchExpectationError)) throw error
+      if (attempt === MAX_STALE_READ_ATTEMPTS) {
+        throw new PersistenceError(
+          'CONFLICT',
+          'The data changed while the operation was in progress. Please try again.',
+          { cause: error },
+        )
+      }
+    }
   }
-  for (let position = 0; position < tasks.length; position += 1) {
-    await driver.execute('UPDATE tasks SET position = ? WHERE id = ?', [
-      position,
-      tasks[position].id,
-    ])
-  }
+  throw new PersistenceError('CONFLICT', 'The data changed while the operation was in progress. Please try again.')
+}
+
+function categorySnapshotGuard(count: number): BatchStatement {
+  return count === 0
+    ? {
+        sql: `UPDATE categories SET position = position
+              WHERE (SELECT COUNT(*) FROM categories) <> 0`,
+        expectedRowsAffected: 0,
+      }
+    : {
+        sql: `UPDATE categories SET position = position
+              WHERE (SELECT COUNT(*) FROM categories) = ?`,
+        parameters: [count],
+        expectedRowsAffected: count,
+      }
+}
+
+function taskSnapshotGuard(categoryId: string, count: number): BatchStatement {
+  return count === 0
+    ? {
+        sql: `UPDATE tasks SET position = position
+              WHERE category_id = ?
+                AND (SELECT COUNT(*) FROM tasks WHERE category_id = ?) <> 0`,
+        parameters: [categoryId, categoryId],
+        expectedRowsAffected: 0,
+      }
+    : {
+        sql: `UPDATE tasks SET position = position
+              WHERE category_id = ?
+                AND (SELECT COUNT(*) FROM tasks WHERE category_id = ?) = ?`,
+        parameters: [categoryId, categoryId, count],
+        expectedRowsAffected: count,
+      }
+}
+
+function categoryPositionStatements(categories: readonly Category[]): BatchStatement[] {
+  return [
+    ...categories.map((category, position) => ({
+      sql: 'UPDATE categories SET position = ? WHERE id = ? AND position = ?',
+      parameters: [-position - 1, category.id, category.order],
+      expectedRowsAffected: 1,
+    })),
+    ...categories.map((category, position) => ({
+      sql: 'UPDATE categories SET position = ? WHERE id = ? AND position = ?',
+      parameters: [position, category.id, -position - 1],
+      expectedRowsAffected: 1,
+    })),
+  ]
+}
+
+function taskPositionStatements(tasks: readonly Task[], categoryId: string): BatchStatement[] {
+  return [
+    ...tasks.map((task, position) => ({
+      sql: `UPDATE tasks SET position = ?
+            WHERE id = ? AND category_id = ? AND position = ?`,
+      parameters: [-position - 1, task.id, categoryId, task.order],
+      expectedRowsAffected: 1,
+    })),
+    ...tasks.map((task, position) => ({
+      sql: `UPDATE tasks SET position = ?
+            WHERE id = ? AND category_id = ? AND position = ?`,
+      parameters: [position, task.id, categoryId, -position - 1],
+      expectedRowsAffected: 1,
+    })),
+  ]
 }
 
 export function createSqliteRepository(driver: PersistenceDriver): Repository {
@@ -106,16 +179,16 @@ export function createSqliteRepository(driver: PersistenceDriver): Repository {
   repository.createCategory = async ({ name }) => {
     validateName(name)
     const id = crypto.randomUUID()
-    const [{ position }] = await driver.select<{ position: number }>(
-      'SELECT COALESCE(MAX(position) + 1, 0) AS position FROM categories',
-    )
     await withSqliteErrorMapping(() =>
       driver.execute(
-        'INSERT INTO categories (id, name, position) VALUES (?, ?, ?)',
-        [id, name, position],
+        `INSERT INTO categories (id, name, position)
+         SELECT ?, ?, COALESCE(MAX(position) + 1, 0) FROM categories`,
+        [id, name],
       ),
     )
-    return { id, name, order: position }
+    const category = await repository.getCategory(id)
+    if (category === undefined) throw new PersistenceError('NOT_FOUND')
+    return category
   }
 
   repository.getCategory = async (id) => {
@@ -140,15 +213,21 @@ export function createSqliteRepository(driver: PersistenceDriver): Repository {
   }
 
   repository.deleteCategory = async (id) => {
-    await driver.transaction(async (transaction) => {
-      const [category] = await transaction.select<{ position: number }>(
-        'SELECT position FROM categories WHERE id = ?',
-        [id],
-      )
+    await withStaleReadRetry(async () => {
+      const categories = await selectCategories(driver)
+      const category = categories.find((item) => item.id === id)
       if (category === undefined) throw new PersistenceError('NOT_FOUND')
-
+      const survivors = categories.filter((item) => item.id !== id)
       try {
-        await transaction.execute('DELETE FROM categories WHERE id = ?', [id])
+        await driver.batch([
+          categorySnapshotGuard(categories.length),
+          {
+            sql: 'DELETE FROM categories WHERE id = ? AND position = ?',
+            parameters: [id, category.order],
+            expectedRowsAffected: 1,
+          },
+          ...categoryPositionStatements(survivors),
+        ])
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         if (message.includes('FOREIGN KEY constraint failed') || message.includes('fk_tasks_category')) {
@@ -156,17 +235,12 @@ export function createSqliteRepository(driver: PersistenceDriver): Repository {
         }
         throw error
       }
-
-      await transaction.execute(
-        'UPDATE categories SET position = position - 1 WHERE position > ?',
-        [category.position],
-      )
     })
   }
 
   repository.reorderCategories = async (categoryIds) =>
-    driver.transaction(async (transaction) => {
-      const current = await selectCategories(transaction)
+    withStaleReadRetry(async () => {
+      const current = await selectCategories(driver)
       const currentIds = new Set(current.map(({ id }) => id))
       const submittedIds = new Set(categoryIds)
       const isComplete =
@@ -176,20 +250,13 @@ export function createSqliteRepository(driver: PersistenceDriver): Repository {
 
       if (!isComplete) throw new PersistenceError('INVALID_REORDER')
 
-      for (let position = 0; position < categoryIds.length; position += 1) {
-        await transaction.execute(
-          'UPDATE categories SET position = ? WHERE id = ?',
-          [-position - 1, categoryIds[position]],
-        )
-      }
-      for (let position = 0; position < categoryIds.length; position += 1) {
-        await transaction.execute(
-          'UPDATE categories SET position = ? WHERE id = ?',
-          [position, categoryIds[position]],
-        )
-      }
-
-      return selectCategories(transaction)
+      const byId = new Map(current.map((category) => [category.id, category]))
+      const reordered = categoryIds.map((id) => byId.get(id) as Category)
+      await driver.batch([
+        categorySnapshotGuard(current.length),
+        ...categoryPositionStatements(reordered),
+      ])
+      return reordered.map((category, order) => ({ ...category, order }))
     })
 
   repository.createTask = async ({ categoryId, title, description }) => {
@@ -237,46 +304,67 @@ export function createSqliteRepository(driver: PersistenceDriver): Repository {
   }
 
   repository.deleteTask = async (id) => {
-    await driver.transaction(async (transaction) => {
-      const task = await selectTask(transaction, id)
+    await withStaleReadRetry(async () => {
+      const task = await selectTask(driver, id)
       if (task === undefined) throw new PersistenceError('NOT_FOUND')
-      await transaction.execute('DELETE FROM tasks WHERE id = ?', [id])
-      await reindexTasks(transaction, task.categoryId)
+      const current = await selectTasks(driver, task.categoryId)
+      const survivors = current.filter((item) => item.id !== id)
+      await driver.batch([
+        taskSnapshotGuard(task.categoryId, current.length),
+        {
+          sql: `DELETE FROM tasks
+                WHERE id = ? AND category_id = ? AND position = ?`,
+          parameters: [id, task.categoryId, task.order],
+          expectedRowsAffected: 1,
+        },
+        ...taskPositionStatements(survivors, task.categoryId),
+      ])
     })
   }
 
   repository.moveTask = async (taskId, targetCategoryId) =>
-    driver.transaction(async (transaction) => {
-      const task = await selectTask(transaction, taskId)
+    withStaleReadRetry(async () => {
+      const task = await selectTask(driver, taskId)
       if (task === undefined) throw new PersistenceError('NOT_FOUND')
-      if (!(await categoryExists(transaction, targetCategoryId))) {
+      if (!(await categoryExists(driver, targetCategoryId))) {
         throw new PersistenceError('CATEGORY_NOT_FOUND')
       }
       if (task.categoryId === targetCategoryId) {
         throw new PersistenceError('INVALID_INPUT')
       }
 
+      const current = await selectTasks(driver, task.categoryId)
+      const survivors = current.filter((item) => item.id !== taskId)
       await withSqliteErrorMapping(() =>
-        transaction.execute(
-          `UPDATE tasks
-           SET category_id = ?,
-               position = (SELECT COALESCE(MAX(position) + 1, 0) FROM tasks WHERE category_id = ?)
-           WHERE id = ?`,
-          [targetCategoryId, targetCategoryId, taskId],
-        ),
+        driver.batch([
+          taskSnapshotGuard(task.categoryId, current.length),
+          {
+            sql: 'UPDATE categories SET name = name WHERE id = ?',
+            parameters: [targetCategoryId],
+            expectedRowsAffected: 1,
+          },
+          {
+            sql: `UPDATE tasks
+                  SET category_id = ?,
+                      position = (SELECT COALESCE(MAX(position) + 1, 0) FROM tasks WHERE category_id = ?)
+                  WHERE id = ? AND category_id = ? AND position = ?`,
+            parameters: [targetCategoryId, targetCategoryId, taskId, task.categoryId, task.order],
+            expectedRowsAffected: 1,
+          },
+          ...taskPositionStatements(survivors, task.categoryId),
+        ]),
       )
-      await reindexTasks(transaction, task.categoryId)
-      const moved = await selectTask(transaction, taskId)
+      const moved = await selectTask(driver, taskId)
       if (moved === undefined) throw new PersistenceError('NOT_FOUND')
       return moved
     })
 
   repository.reorderTasks = async (categoryId, taskIds) =>
-    driver.transaction(async (transaction) => {
-      if (!(await categoryExists(transaction, categoryId))) {
+    withStaleReadRetry(async () => {
+      if (!(await categoryExists(driver, categoryId))) {
         throw new PersistenceError('CATEGORY_NOT_FOUND')
       }
-      const current = await selectTasks(transaction, categoryId)
+      const current = await selectTasks(driver, categoryId)
       const currentIds = new Set(current.map(({ id }) => id))
       const submittedIds = new Set(taskIds)
       const isComplete =
@@ -286,20 +374,13 @@ export function createSqliteRepository(driver: PersistenceDriver): Repository {
 
       if (!isComplete) throw new PersistenceError('INVALID_REORDER')
 
-      for (let position = 0; position < taskIds.length; position += 1) {
-        await transaction.execute('UPDATE tasks SET position = ? WHERE id = ?', [
-          -position - 1,
-          taskIds[position],
-        ])
-      }
-      for (let position = 0; position < taskIds.length; position += 1) {
-        await transaction.execute('UPDATE tasks SET position = ? WHERE id = ?', [
-          position,
-          taskIds[position],
-        ])
-      }
-
-      return selectTasks(transaction, categoryId)
+      const byId = new Map(current.map((task) => [task.id, task]))
+      const reordered = taskIds.map((id) => byId.get(id) as Task)
+      await driver.batch([
+        taskSnapshotGuard(categoryId, current.length),
+        ...taskPositionStatements(reordered, categoryId),
+      ])
+      return reordered.map((task, order) => ({ ...task, order }))
     })
 
   repository.completeTask = async (taskId, completedAt) => {
@@ -344,25 +425,51 @@ export function createSqliteRepository(driver: PersistenceDriver): Repository {
 
   repository.purgeExpiredCompletedTasks = async (now) => {
     const cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
-    return driver.transaction(async (transaction) => {
-      const expired = await transaction.select<{ category_id: string }>(
-        `SELECT category_id
+    return withStaleReadRetry(async () => {
+      const expired = await driver.select<TaskRow>(
+        `SELECT id, category_id, title, description, position, status, completed_at
          FROM tasks
          WHERE status = 'completed' AND completed_at <= ?`,
         [cutoff],
       )
       if (expired.length === 0) return 0
 
-      const result = await transaction.execute(
-        `DELETE FROM tasks
-         WHERE status = 'completed' AND completed_at <= ?`,
-        [cutoff],
-      )
       const affectedCategories = new Set(expired.map(({ category_id }) => category_id))
+      const snapshots = new Map<string, Task[]>()
       for (const categoryId of affectedCategories) {
-        await reindexTasks(transaction, categoryId)
+        snapshots.set(categoryId, await selectTasks(driver, categoryId))
       }
-      return result.rowsAffected
+      const expiredIds = new Set(expired.map(({ id }) => id))
+      const statements: BatchStatement[] = [
+        {
+          sql: `UPDATE tasks SET status = status
+                WHERE status = 'completed' AND completed_at <= ?`,
+          parameters: [cutoff],
+          expectedRowsAffected: expired.length,
+        },
+      ]
+      for (const [categoryId, tasks] of snapshots) {
+        statements.push(taskSnapshotGuard(categoryId, tasks.length))
+      }
+      for (const row of expired) {
+        statements.push({
+          sql: `DELETE FROM tasks
+                WHERE id = ? AND category_id = ? AND position = ?
+                  AND status = 'completed' AND completed_at = ? AND completed_at <= ?`,
+          parameters: [row.id, row.category_id, row.position, row.completed_at, cutoff],
+          expectedRowsAffected: 1,
+        })
+      }
+      for (const [categoryId, tasks] of snapshots) {
+        statements.push(
+          ...taskPositionStatements(
+            tasks.filter((task) => !expiredIds.has(task.id)),
+            categoryId,
+          ),
+        )
+      }
+      await driver.batch(statements)
+      return expired.length
     })
   }
 
