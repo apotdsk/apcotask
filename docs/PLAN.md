@@ -57,7 +57,7 @@ Scope: `docs/DESIGN.md` with main window layout, widget appearance, and basic vi
 Done when: committed.
 
 ### T07 — Application shell
-Status: [~]
+Status: [x]
 Depends on: T04b
 Scope: main and widget windows, tray with Open backlog and Quit, hide-on-close, `backlog-changed` event wrappers in `src/native/`.
 Done when: manual check of tray, hide-on-close, and Quit; both windows open.

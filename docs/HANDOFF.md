@@ -20,20 +20,21 @@ Task: T07 — Application shell
 - Scoped event capabilities to both windows and added production and development local-only CSPs.
 - Recorded the approved lifecycle behavior in PRODUCT.md, ARCHITECTURE.md, and DECISIONS.md.
 - Verified a second launch leaves one process. Automated TypeScript, frontend build, and Rust checks pass.
+- The project owner completed the interactive tray, window-close, cross-window event, and two-window database checks and approved T07.
 
 ## Current State
 
-- T07 is implemented but remains `[~]` until the owner completes the interactive tray, window-close, cross-window event, and two-window database console checks.
+- T07 is approved and marked `[x]`; committing remains the project owner's step.
 - The native app launches successfully with Tauri 2.11.5 and `tauri-plugin-single-instance` 2.4.5.
 - All 133 TypeScript tests and all 16 Rust tests pass.
 
 ## Next Step
 
-Run the T07 manual checklist from the implementation report in both WebView developer consoles, then approve T07 and mark it `[x]`.
+Start T08.
 
 ## Open Questions / Blockers
 
-- Interactive Windows UI and developer-console checks require the project owner's desktop session.
+- None.
 
 ## Gotchas
 
